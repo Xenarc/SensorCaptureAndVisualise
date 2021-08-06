@@ -1,0 +1,163 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "API",
+  "Parameters": {
+    "DynamoDBTableName": {
+        "Description": "Name of the DynamoDB table to store the captured data",
+        "Type": "String",
+        "Default": "SensorData"
+    }
+    
+  },
+  "Resources": {
+    "SaveToDynamoDB": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Handler": "index.handler",
+        "Role": { "Fn::GetAtt" : ["LambdaExecutionRole", "Arn"] },
+        "Code": {
+          "ZipFile":  { "Fn::Join": ["", [
+            "const AWS = require('aws-sdk');\n",
+            "AWS.config.update({region: process.env.AWS_REGION}); \n",
+            "const dynamo = new AWS.DynamoDB.DocumentClient({apiVersion: '2012-08-10'});\n",
+            "exports.handler = async (event, context) => {\n",
+            "    console.log(JSON.stringify(event));\n",
+            "    const parse = (data) => {\n",
+            "        if (typeof data === 'object') return data;\n",
+            "        else if (typeof data === 'string') return JSON.parse(data);\n",
+            "    };\n",
+            "    const addEntry = (timestamp, value) => {\n",
+            "        const params = {\n",
+            "            TableName: 'SensorData',\n",
+            "            Item: {\n",
+            "                timestamp: timestamp,\n",
+            "                value: value\n",
+            "            },\n",
+            "        };\n",
+            "      return new Promise((resolve, reject) => {\n",
+            "        dynamo.put(params, (error, data) => {\n",
+            "            if(error){\n",
+            "                reject(error);\n",
+            "            }\n",
+            "            else{\n",
+            "                resolve(data);\n",
+            "            }\n",
+            "        });\n",
+            "      });\n",
+            "    };\n",
+            "    let successes = 0;\n",
+            "    let failures = 0;\n",
+            "    if(!event.body) return {statusCode: 400, message: 'You must provide a JSON body'};\n",
+            "    for (const [timestamp, value] of Object.entries(parse(event.body))) {\n",
+            "        await addEntry(timestamp, value)\n",
+            "            .then(() => successes = successes + 1)\n",
+            "            .catch((error) => {failures = failures + 1; console.log(error)});\n",
+            "    }\n",
+            "    const response = {\n",
+            "        statusCode: 200,\n",
+            "        body: JSON.stringify({\n",
+            "            success: failures === 0\n",
+            "        })\n",
+            "    };\n",
+            "    console.log('response: ' + JSON.stringify(response));\n",
+            "    return response;\n",
+            "};\n"
+          ]]}
+        },
+        "Runtime": "nodejs14.x"
+      },
+      "DependsOn": "DynamoDBTable"
+    },
+    "DynamoDBTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": {
+          "Ref": "DynamoDBTableName"
+        },
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "timestamp",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "timestamp",
+            "KeyType": "HASH"
+          }
+        ],
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": 5,
+          "WriteCapacityUnits": 5
+        }
+      }
+    },
+    "ApiGateway": {
+      "Type": "AWS::ApiGatewayV2::Api",
+      "Properties": {
+        "Name": "Sensor Lambda Proxy",
+        "Description": "A Proxy for the sensor data processor lambda function",
+        "ProtocolType": "HTTP",
+        "CredentialsArn": { "Fn::GetAtt" : ["ApiGatewayExecutionRole", "Arn"] },
+        "Target": { "Fn::GetAtt" : ["SaveToDynamoDB", "Arn"] }
+      }
+    },
+    "Logs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties":{
+        "LogGroupName": {
+            "Fn::Join": ["", 
+              [
+              {
+                "Ref": "ApiGateway"
+              },
+              "access-logs"
+            ]
+          ]
+        }
+      }
+    },
+    "LambdaExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{ "Effect": "Allow", "Principal": {"Service": ["lambda.amazonaws.com"]}, "Action": ["sts:AssumeRole"] }]
+        },
+        "Path": "/",
+        "Policies": [{
+          "PolicyName": "root",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              { "Effect": "Allow", "Action": ["logs:*"], "Resource": "arn:aws:logs:*:*:*" },
+              { "Effect": "Allow", "Action": ["dynamodb:PutItem"], "Resource": "*" }
+            ]
+          }
+        }]
+      }
+    },
+    "ApiGatewayExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{ "Effect": "Allow", "Principal": {"Service": ["apigateway.amazonaws.com"]}, "Action": ["sts:AssumeRole"] }]
+        },
+        "Path": "/",
+        "Policies": [{
+          "PolicyName": "root",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              { "Effect": "Allow", "Action": [
+                "lambda:InvokeFunction",
+                "lambda:InvokeAsync"
+                ], "Resource": "*" }
+            ]
+          }
+        }]
+      }
+    }
+  }
+}
