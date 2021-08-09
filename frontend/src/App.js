@@ -36,12 +36,11 @@ function App() {
       },
       body: JSON.stringify({"fromTimestamp": fromTimestamp}),
     };
-    fetch(process.env.API, requestOptions) // TODO: change to env var
+    fetch(process.env.REACT_APP_API, requestOptions) // TODO: change to env var
       .then(result => result.json())
       .then(response => JSON.parse(response.body))
       .then(
         (body) =>{
-          console.log(body);
           if(!body.ok){
             console.log("Get Items Failed: ok = false")
           }else{
