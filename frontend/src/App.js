@@ -36,11 +36,12 @@ function App() {
       },
       body: JSON.stringify({"fromTimestamp": fromTimestamp}),
     };
-    fetch("https://8n9c6elcti.execute-api.ap-southeast-2.amazonaws.com", requestOptions) // TODO: change to env var
+    fetch(process.env.API, requestOptions) // TODO: change to env var
       .then(result => result.json())
       .then(response => JSON.parse(response.body))
       .then(
         (body) =>{
+          console.log(body);
           if(!body.ok){
             console.log("Get Items Failed: ok = false")
           }else{
@@ -93,7 +94,7 @@ function App() {
       <input type="button" onClick={() => updateData()} value="Update"/>
       <div style={{margin: "auto"}}>
         {data &&
-        <ResponsiveContainer width="100%" height={400} >
+        <ResponsiveContainer width="90%" height={400} >
           <LineChart data={data} margin={{ top: 5, right: 0, bottom: 5, left: 0 }}>
             <Line scale="time" isAnimationActive={false} type="monotone" dataKey="value" stroke="#8884d8" dot={showDots} connectNulls={false}/>
             <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
