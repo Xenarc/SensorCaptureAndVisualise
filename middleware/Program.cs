@@ -6,32 +6,45 @@ namespace FinalProject
 {
 	static class PrintUtility
 	{
-		public static void PrintStatus(string status, int position=Program.PACKET_SIZE+4)
+		public static void PrintStatus(string status, int position)
 		{
 			(int left, int top) = Console.GetCursorPosition();
-			Console.SetCursorPosition(position, top);
+			Console.SetCursorPosition(position + 2, top);
 			Console.Write(status);
 			Console.SetCursorPosition(left, top);
 		}
 	}
 	class Program
 	{
-		public const int PACKET_SIZE = 2;
-		static DataPacket<double> dataPacket = new DataPacket<double>(PACKET_SIZE);
-		static IPublisher<double> publisher = new CloudPublisher<double>();
-		static ISerialInterface arduino = new Arduino();
+		public static int PACKET_SIZE;
+		static DataPacket<SensorCapture> dataPacket;
+		static IPublisher<SensorCapture> publisher;
+		static ISerialInterface<SensorCapture> arduino;
 		static void Main(string[] args)
 		{
-			arduino.LineAvailableEvent += LineAvailable;
+			string input;
+			do {
+				Console.WriteLine("Enter the Packet Size: ");
+				input = Console.ReadLine();
+			}while (!int.TryParse(input, out PACKET_SIZE));
+			
+			
+			arduino = new Arduino<SensorCapture>(new CommaSeperatedDeserialiser());
+			dataPacket = new DataPacket<SensorCapture>(PACKET_SIZE);
+			
+			publisher = new CloudPublisher<SensorCapture>("https://ifj8924a08.execute-api.ap-southeast-2.amazonaws.com");
+			
+			arduino.CaptureAvailableEvent += CaptureAvailable;
 			dataPacket.PacketReadyEvent += PacketReady;
-			Begin();
+			
+			arduino.Begin();
 			
 			Console.WriteLine("Press Esc to stop.");
 			Console.TreatControlCAsInput = true;
 			
-			ConsoleKeyInfo key;
+			ConsoleKeyInfo key = new ConsoleKeyInfo();
 			
-			while(true)
+			while(key.Key != ConsoleKey.Escape)
 			{
 				key = Console.ReadKey(true);
 				
@@ -46,27 +59,27 @@ namespace FinalProject
 			}
 			
 			arduino.Stop();
+			Console.TreatControlCAsInput= false;
 		}
-		static void Begin() => arduino.Begin();
-		
-		static void LineAvailable(object sender, LineAvailableEventArgs e)
+		static void CaptureAvailable(object sender, DataAvailableEventArgs<SensorCapture> e)
 		{
-			double entry;
-			
-			if(double.TryParse(e.Line, out entry))
+			if(e.Data != null)
 			{
-				dataPacket.Add(entry);
+				// PrintUtility.PrintStatus(e.Data.ToString() + new string(' ', 50), PACKET_SIZE + 24);
 				Console.Write(".");
+				dataPacket.Add(e.Data);
 			}
 			else
+			{
+				// PrintUtility.PrintStatus(e.Line + new string(' ', 50), PACKET_SIZE + 24);
 				Console.Write("#");
+			}
 		}
 		
-		static void PacketReady(DataPacket<double> packet, DataPacketReadyEventArgs eventArgs)
+		static void PacketReady(DataPacket<SensorCapture> packet, DataPacketReadyEventArgs eventArgs)
 		{
 			System.Console.WriteLine();
-			publisher.Publish(packet);
-			eventArgs.Success = true;
+			eventArgs.Success = publisher.Publish(packet);
 		}
 	}
 }

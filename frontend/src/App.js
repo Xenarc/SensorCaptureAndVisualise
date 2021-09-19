@@ -42,7 +42,7 @@ function App() {
       .then(
         (body) =>{
           if(!body.ok){
-            console.log("Get Items Failed: ok = false")
+            console.log("Get Items Failed (ok = false)");
           }else{
             setData(body.message.Items);
             console.log(body.message.Items.length);

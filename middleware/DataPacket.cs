@@ -23,8 +23,6 @@ namespace FinalProject
 				}
 		}
 		
-		
-		
 		// Success
 		public delegate void SuccessEventHandler();
 		public event SuccessEventHandler SuccessEvent;
@@ -79,25 +77,10 @@ namespace FinalProject
 				eventArgs.SuccessEvent += FinalisePacket; // If the packet was consumed, we release the backlog
 				PacketReadyEvent?.Invoke(this, eventArgs);
 			}
-			else // Packet is not full
-			{
-				base.Add(timestamp, value);
-			}
+			else base.Add(timestamp, value); // Packet is not full
 		}
-		
 		public void Add(T value) => Add(DateTime.UtcNow, value);
-
-		public override bool Equals(object obj)
-		{
-			return base.Equals(obj);
-		}
-
-		public override int GetHashCode()
-		{
-			return base.GetHashCode();
-		}
-
-		public void PrintStatus()
+    public void PrintStatus()
 		{
 			(int left, int top) = Console.GetCursorPosition();
 			Console.SetCursorPosition(Capacity + 4, Console.CursorTop);

@@ -12,11 +12,11 @@ namespace FinalProject
 		
 		public async Task<bool> Send(string message)
 		{
-			PrintUtility.PrintStatus("Sending Packet");
+			PrintUtility.PrintStatus("Sending Packet", Program.PACKET_SIZE);
 			using (HttpResponseMessage response =
 				await client.PostAsync(endpoint, new StringContent(message)))
 			{
-				PrintUtility.PrintStatus(await response.Content.ReadAsStringAsync());
+				PrintUtility.PrintStatus(await response.Content.ReadAsStringAsync(), Program.PACKET_SIZE);
 				return response.IsSuccessStatusCode;
 			}
 		}

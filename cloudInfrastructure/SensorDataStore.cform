@@ -103,54 +103,78 @@
         "Handler": "index.handler",
         "Role": { "Fn::GetAtt" : ["LambdaExecutionRole", "Arn"] },
         "Code": {
-          "ZipFile":  { "Fn::Join": ["", [
-            "const AWS = require('aws-sdk');\n",
-            "AWS.config.update({region: process.env.AWS_REGION}); \n",
-            "const dynamo = new AWS.DynamoDB.DocumentClient({apiVersion: '2012-08-10'});\n",
-            "exports.handler = async (event, context) => {\n",
-            "    console.log(JSON.stringify(event));\n",
-            "    const parse = (data) => {\n",
-            "        if (typeof data === 'object') return data;\n",
-            "        else if (typeof data === 'string') return JSON.parse(data);\n",
-            "    };\n",
-            "    const addEntry = (timestamp, value) => {\n",
-            "        const params = {\n",
-            {"Fn::Sub": ["            TableName: '${TableName}',\n", {"TableName": {"Ref": "DynamoDBTableName"}}]},
-            "            Item: {\n",
-            "                deviceID: 1,\n",
-            "                timestamp: timestamp,\n",
-            "                value: value\n",
-            "            },\n",
-            "        };\n",
-            "      return new Promise((resolve, reject) => {\n",
-            "        dynamo.put(params, (error, data) => {\n",
-            "            if(error){\n",
-            "                reject(error);\n",
-            "            }\n",
-            "            else{\n",
-            "                resolve(data);\n",
-            "            }\n",
-            "        });\n",
-            "      });\n",
-            "    };\n",
-            "    let successes = 0;\n",
-            "    let failures = 0;\n",
-            "    if(!event.body) return {statusCode: 400, message: 'You must provide a JSON body'};\n",
-            "    for (const [timestamp, value] of Object.entries(parse(event.body))) {\n",
-            "        await addEntry(Math.floor(new Date(timestamp).getTime()/1000), value)\n",
-            "            .then(() => successes = successes + 1)\n",
-            "            .catch((error) => {failures = failures + 1; console.log(error)});\n",
-            "    }\n",
-            "    const response = {\n",
-            "        statusCode: 200,\n",
-            "        body: JSON.stringify({\n",
-            "            success: failures === 0\n",
-            "        })\n",
-            "    };\n",
-            "    console.log('response: ' + JSON.stringify(response));\n",
-            "    return response;\n",
-            "};\n"
-          ]]}
+          "ZipFile":  { "Fn::Join": 
+            ["", [
+              "const AWS = require('aws-sdk');\n",
+              "AWS.config.update({region: process.env.AWS_REGION}); \n",
+              "const dynamo = new AWS.DynamoDB.DocumentClient({apiVersion: '2012-08-10'});\n",
+              "exports.handler = async (event, context) => {\n",
+              "    console.log(JSON.stringify(event));\n",
+              "    const parse = (data) => {\n",
+              "        if (typeof data === 'object') return data;\n",
+              "        else if (typeof data === 'string') return JSON.parse(data);\n",
+              "    };\n",
+              "    const duePoint = (t, h) => ((h/100)**(1/8))*(112 + (0.9*t)) + (0.1*t) - 112 + 273.16;\n",
+              "    const humidex = (t, h) => t + 0.5555*(6.11 * Math.exp(5417.7530 * ((1/273.16) - (1/duePoint(t,h))))-10);\n",
+              "    const publishSNS = (message) =>\n",
+              "    {\n",
+              "        var sns = new AWS.SNS();\n",
+              "        var params = {\n",
+              "            Message: message,\n",
+              "            TopicArn: '", { "Ref" : "SensorAlertTopic"}, "'\n",
+              "        };\n",
+              "        sns.publish(params, context.done);\n",
+              "    };\n",
+              "    const addEntry = (timestamp, value) => {\n",
+              "        const params = {\n",
+              "            TableName: 'SensorData',\n",
+              "            Item: {\n",
+              "                deviceID: 1,\n",
+              "                timestamp: timestamp,\n",
+              "                value: value\n",
+              "            },\n",
+              "        };\n",
+              "      return new Promise((resolve, reject) => {\n",
+              "        dynamo.put(params, (error, data) => {\n",
+              "            if(error){\n",
+              "                reject(error);\n",
+              "            }\n",
+              "            else{\n",
+              "                resolve(data);\n",
+              "            }\n",
+              "        });\n",
+              "      });\n",
+              "    };\n",
+              "    let successes = 0;\n",
+              "    let failures = 0;\n",
+              "    if(!event.body) return {statusCode: 400, message: 'You must provide a JSON body'};\n",
+              "    let heighestHumidex = 0;\n",
+              "    let lowestTemp = 100;\n",
+              "    for (const [timestamp, value] of Object.entries(parse(event.body))) {\n",
+              "        const h = humidex(value.Temperature, value.Humidity);\n",
+              "        heighestHumidex = (h > heighestHumidex ? h : heighestHumidex);\n",
+              "        lowestTemp = (value.Temperature < lowestTemp ? value.Temperature : lowestTemp);\n",
+              "        await addEntry(Math.floor(new Date(timestamp).getTime()/1000), value)\n",
+              "            .then(() => successes = successes + 1)\n",
+              "            .catch((error) => {failures = failures + 1; console.log(error)});\n",
+              "    }\n",
+              "    console.log('Humidex: ' + heighestHumidex.toFixed(2));\n",
+              "if(heighestHumidex > 25)\n",
+              "       publishSNS('Humidex is too high: ' + heighestHumidex.toFixed(2) + '.');\n",
+              "if(lowestTemp < 19.5) \n",
+              "       publishSNS('Temperature is too low: ' + lowestTemp.toFixed(2) + 'C.');\n",
+              "    \n",
+              "    const response = {\n",
+              "        statusCode: 200,\n",
+              "        body: JSON.stringify({\n",
+              "            success: failures === 0\n",
+              "        })\n",
+              "    };\n",
+              "    console.log('response: ' + JSON.stringify(response));\n",
+              "    return response;\n",
+              "};\n"
+            ]]
+          }
         },
         "Runtime": "nodejs14.x"
       },
@@ -244,7 +268,8 @@
             "Version": "2012-10-17",
             "Statement": [
               { "Effect": "Allow", "Action": ["logs:*"], "Resource": "arn:aws:logs:*:*:*" },
-              { "Effect": "Allow", "Action": ["dynamodb:PutItem", "dynamodb:Scan"], "Resource": "*" }
+              { "Effect": "Allow", "Action": ["dynamodb:PutItem", "dynamodb:Scan"], "Resource": "*" },
+              { "Effect": "Allow", "Action": ["SNS:Publish"], "Resource": "*" }
             ]
           }
         }]
@@ -271,10 +296,17 @@
           }
         }]
       }
+    },
+    "SensorAlertTopic": {
+      "Type" : "AWS::SNS::Topic",
+      "Properties" : {
+          "DisplayName" : "Sensor Alert",
+          "FifoTopic" : false,
+          "TopicName" : "SensorAlert"
+        }
     }
   },
   "Outputs":{
-    
     "SendApiEndpoint" : {
       "Value" : {
         "Fn::Sub": "https://${SendDataApiGateway}.execute-api.ap-southeast-2.amazonaws.com"
