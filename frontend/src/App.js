@@ -83,7 +83,7 @@ function App() {
   
   useEffect(() => {if(progress >= 1) updateData()}, [progress, updateData]);
   useEffect(() => {
-    const interval = setInterval(() => {if(autoUpdate) setProgress(progress + 1/500);}, updateTime/500);
+    const interval = setInterval(() => {if(autoUpdate) setProgress(progress + 1/100);}, updateTime/100);
     return () => clearInterval(interval);
   }, [updateData, autoUpdate, progress, updateTime])
   
@@ -93,7 +93,7 @@ function App() {
       <br />
       <br />
       <div style={{width: '100vw', height: '0.2em', position: 'fixed', top: 0, left: 0}}>
-        <div style={{width: `${progress*100}vw`, backgroundColor: '#000000', height: '0.2em'}} />
+        <div style={{width: `${progress*100}vw`, backgroundColor: '#000000', height: '0.2em', transition: "all " + updateTime/100 + "ms ease"}} />
       </div>
       <h1>Sensor Data</h1>
       <br />

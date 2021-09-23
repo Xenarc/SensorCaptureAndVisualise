@@ -24,5 +24,5 @@ void loop()
     temp= dht.readTemperature();
     Serial.println(String(temp) + "," + String(hum));
 
-    delay(5000); //Delay 30 seconds.
+    delay(5000); //Delay 5 seconds.
 }
