@@ -167,26 +167,40 @@ function App() {
               <div>
                 <Pie value={data[data.length-1].humidity} max={100} datakey="humidity" fill="#adc6e0" size={250}/>
                 <h2 style={{marginTop: '-3em', marginBottom: '2em'}}>{data[data.length-1].humidity}%</h2>
-                <h2>Humidity</h2>
+                <h2>Current Humidity</h2>
                 <br />
               </div>
               <div>
                 <Pie value={data[data.length-1].temperature} max={43} datakey="humidity" fill="#e61531" size={250}/>
                 <h2 style={{marginTop: '-3em', marginBottom: '2em'}}>{data[data.length-1].temperature}&deg;C</h2>
-                <h2>Temperature</h2>
-                <br />
+                <h2>Current Temperature</h2>
               </div>
             </div>
             
-            <h2>Temperature</h2>
+            <h2>
+              Temperature&nbsp;
+              {Tminus!==14*24*60*60 &&
+                <>over the last {secondsToDHMS(Tminus)}</>
+              }
+            </h2>
             <Graph data={data} dot={showDots} datakey="temperature" stroke="#b84921" fill="#e61531" showSeconds={Tminus < 5*60}/>
             <br />
             
-            <h2>Humidity</h2>
+            <h2>
+              Humidity&nbsp;
+              {Tminus!==14*24*60*60 &&
+                <>over the last {secondsToDHMS(Tminus)}</>
+              }
+            </h2>
             <Graph data={data} dot={showDots} datakey="humidity" stroke="#2f74b5" fill="#adc6e0" showSeconds={Tminus < 5*60}/>
             <br />
             
-            <h2>Humidex</h2>
+            <h2>
+              Humidex&nbsp;
+              {Tminus!==14*24*60*60 &&
+                <>over the last {secondsToDHMS(Tminus)}</>
+              }
+            </h2>
             <Graph data={data} dot={showDots} datakey="humidex" stroke="#8c840f" fill="#e3d732" showSeconds={Tminus < 5*60}/>
             <br />
             <div style={{display: 'flex', justifyContent: 'space-around'}}>
