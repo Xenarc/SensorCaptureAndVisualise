@@ -183,7 +183,7 @@ function App() {
                 <>over the last {secondsToDHMS(Tminus)}</>
               }
             </h2>
-            <Graph data={data} dot={showDots} datakey="temperature" stroke="#b84921" fill="#e61531" showSeconds={Tminus < 5*60}/>
+            <Graph data={data} dot={showDots} datakey="temperature" stroke="#b84921" fill="#e61531" showSeconds={Tminus < 5*60} xlabel="Time (HH:MM(:SS))" ylabel="Temperature (&deg;C)"/>
             <br />
             
             <h2>
@@ -192,7 +192,7 @@ function App() {
                 <>over the last {secondsToDHMS(Tminus)}</>
               }
             </h2>
-            <Graph data={data} dot={showDots} datakey="humidity" stroke="#2f74b5" fill="#adc6e0" showSeconds={Tminus < 5*60}/>
+            <Graph data={data} dot={showDots} datakey="humidity" stroke="#2f74b5" fill="#adc6e0" showSeconds={Tminus < 5*60} xlabel="Time (HH:MM(:SS))" ylabel="Relative Humidity (%)"/>
             <br />
             
             <h2>
@@ -201,7 +201,7 @@ function App() {
                 <>over the last {secondsToDHMS(Tminus)}</>
               }
             </h2>
-            <Graph data={data} dot={showDots} datakey="humidex" stroke="#8c840f" fill="#e3d732" showSeconds={Tminus < 5*60}/>
+            <Graph data={data} dot={showDots} datakey="humidex" stroke="#8c840f" fill="#e3d732" showSeconds={Tminus < 5*60} xlabel="Time (HH:MM(:SS))" ylabel="Humidex (unitless)"/>
             <br />
             <div style={{display: 'flex', justifyContent: 'space-around'}}>
               <div>
