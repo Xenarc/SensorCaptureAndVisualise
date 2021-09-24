@@ -142,8 +142,16 @@ function App() {
             <input type="button" disabled={Tminus===2*24*60*60} value="2d" onClick={e => setTminus(2*24*60*60)} />
             <input type="button" disabled={Tminus===3*24*60*60} value="3d" onClick={e => setTminus(3*24*60*60)} />
             &nbsp;
+            &nbsp;
+            <div>
+              <input type="button" disabled={Tminus===14*24*60*60} value="ALL" onClick={e => setTminus(14*24*60*60)} /> <br />
+              (experimental)
+            </div>
+            &nbsp;
             <h4>
-              ({secondsToDHMS(Tminus)})
+              {Tminus!==14*24*60*60 &&
+                secondsToDHMS(Tminus)
+              }
             </h4>
           </div>
           <h4>
